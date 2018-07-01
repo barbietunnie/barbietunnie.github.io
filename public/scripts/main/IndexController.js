@@ -1,7 +1,9 @@
 import ToastsView from './views/Toasts';
 import ConverterView from './views/Converter';
 import idb from 'idb';
-import { SCHEMA, CURRENCIES_STORE, CURRENCIES_URL } from './constants'; 
+import { SCHEMA, CURRENCIES_STORE, CURRENCIES_URL, 
+          RATES_STORE, CONVERSION_URL, KEYUP_DELAY } from './constants'; 
+import debounce from './../utils/debounce';
 
 function openDatabase() {
   // If the browser doesn't support service worker,
@@ -10,8 +12,13 @@ function openDatabase() {
     return Promise.resolve();
   }
   
-  return idb.open(SCHEMA, 1, function(upgradeDb) {
-    var store = upgradeDb.createObjectStore(CURRENCIES_STORE, { keyPath: 'id' });
+  return idb.open(SCHEMA, 2, function(upgradeDb) {
+    switch(upgradeDb.oldVersion) {
+      case 0:
+        upgradeDb.createObjectStore(CURRENCIES_STORE, { keyPath: 'id' });
+      case 1:
+        upgradeDb.createObjectStore(RATES_STORE, { keyPath: 'id' });
+    }
   });
 }
 
@@ -85,6 +92,7 @@ IndexController.prototype._showConverterPanel = function(container) {
       console.log(`${currencies.length} items found in the database`);
 
       indexController._converterView.addCurrencies(currencies);
+      indexController.registerEventOnInputFields();
       return;
     }
 
@@ -113,12 +121,11 @@ IndexController.prototype._showConverterPanel = function(container) {
             console.log(`${currencies.length} items found in the database`);
 
             indexController._converterView.addCurrencies(currencies);
+            indexController.registerEventOnInputFields();
           });
       });
     });
   });
-
-  indexController._converterView.displayConverter();
 }
 
 IndexController.prototype._trackInstalling = function(worker) {
@@ -141,104 +148,88 @@ IndexController.prototype._updateReady = function(worker) {
   });
 };
 
-IndexController.prototype.loadCurrencies = function() {
+IndexController.prototype.registerEventOnInputFields = function() {
+  const fromField = this._container.querySelector('#amt1');
+  const toField = this._container.querySelector('#amt2');
+  const fromCurr = this._container.querySelector('#fromCurrency');
+  const toCurr = this._container.querySelector('#toCurrency');
 
+  fromField.addEventListener("keyup", debounce((event) => {
+      // console.log('Left: ', fromField.value);
+      // If both fields are filled
+      if(fromField.value && toField.value)
+          // this.convert().then(function(val) {
+          //   console.log(`Rate: ${val}`);
+          // });
+          this.convert().then(function(val) {
+            console.log(`Rate: ${val}`);
+          });
+  }, KEYUP_DELAY));
+
+  toField.addEventListener("keyup", debounce((event) => {
+      // console.log('Right: ', toField.value);
+      if(fromField.value && toField.value)
+          this.convert().then(function(val) {
+            console.log(`Rate: ${val}`);
+          });
+  }, KEYUP_DELAY));
+
+  // fromCurr.addEventListener("select", this.convert());
+
+  // toCurr.addEventListener("select", this.convert());
+};
+
+IndexController.prototype.convert = function() {
+  var indexController = this;
+
+  const fromField = this._container.querySelector('#amt1');
+  const toField = this._container.querySelector('#amt2');
+  const fromCurr = this._container.querySelector('#fromCurrency');
+  const toCurr = this._container.querySelector('#toCurrency');
+
+  const expectedCurrency = `${fromCurr.value}_${toCurr.value}`;
+  // console.log(`Expected currency: ${expectedCurrency}`);
+
+  return indexController._dbPromise.then(function(db) {
+    return db.transaction(RATES_STORE)
+              .objectStore(RATES_STORE)
+              .get(expectedCurrency);
+  }).then(function(storedRecord){
+    if(storedRecord) {
+        console.log(`${expectedCurrency} is available at rate ${storedRecord.rate} from the database`);
+        return storedRecord.rate;
+    }
+    
+    // Rate not found in the database, fetch from the API
+    console.log('Fetching rates from the network');
+
+    return fetch(`${CONVERSION_URL}${expectedCurrency}`)
+          .then(function(response) {
+              return response.json();
+          })
+          .then(function(jsonData) {
+              console.log(jsonData);
+              
+              if(!jsonData)
+                  return;
+              
+              // Add the rate fetched into the database
+              return indexController._dbPromise.then(function(db) {
+                  if (!db) return;
+
+                  var tx = db.transaction(RATES_STORE, 'readwrite');
+                  var store = tx.objectStore(RATES_STORE);
+                  Object.keys(jsonData).forEach(curr => {
+                    console.log(curr, '->', jsonData[curr]);
+                    store.put({id: curr, rate: jsonData[curr]});
+                  });
+                  
+                  store.get(expectedCurrency).then(function(dbCurr) {
+                    console.log(`${expectedCurrency} = ${dbCurr.rate} was saved in the database`);
+                    
+                    return dbCurr.rate;
+                  });
+            });
+          });
+  });
 }
-
-// open a connection to the server for live updates
-// IndexController.prototype._openSocket = function() {
-//   var indexController = this;
-//   var latestPostDate = this._postsView.getLatestPostDate();
-
-//   // create a url pointing to /updates with the ws protocol
-//   var socketUrl = new URL('/updates', window.location);
-//   socketUrl.protocol = 'ws';
-
-//   if (latestPostDate) {
-//     socketUrl.search = 'since=' + latestPostDate.valueOf();
-//   }
-
-//   // this is a little hack for the settings page's tests,
-//   // it isn't needed for Wittr
-//   socketUrl.search += '&' + location.search.slice(1);
-
-//   var ws = new WebSocket(socketUrl.href);
-
-//   // add listeners
-//   ws.addEventListener('open', function() {
-//     if (indexController._lostConnectionToast) {
-//       indexController._lostConnectionToast.hide();
-//     }
-//   });
-
-//   ws.addEventListener('message', function(event) {
-//     requestAnimationFrame(function() {
-//       indexController._onSocketMessage(event.data);
-//     });
-//   });
-
-//   ws.addEventListener('close', function() {
-//     // tell the user
-//     if (!indexController._lostConnectionToast) {
-//       indexController._lostConnectionToast = indexController._toastsView.show("Unable to connect. Retrying…");
-//     }
-
-//     // try and reconnect in 5 seconds
-//     setTimeout(function() {
-//       indexController._openSocket();
-//     }, 5000);
-//   });
-// };
-
-// IndexController.prototype._cleanImageCache = function() {
-//   return this._dbPromise.then(function(db) {
-//     if (!db) return;
-
-//     var imagesNeeded = [];
-
-//     var tx = db.transaction('wittrs');
-//     return tx.objectStore('wittrs').getAll().then(function(messages) {
-//       messages.forEach(function(message) {
-//         if (message.photo) {
-//           imagesNeeded.push(message.photo);
-//         }
-//         imagesNeeded.push(message.avatar);
-//       });
-
-//       return caches.open('wittr-content-imgs');
-//     }).then(function(cache) {
-//       return cache.keys().then(function(requests) {
-//         requests.forEach(function(request) {
-//           var url = new URL(request.url);
-//           if (!imagesNeeded.includes(url.pathname)) cache.delete(request);
-//         });
-//       });
-//     });
-//   });
-// };
-
-// called when the web socket sends message data
-// IndexController.prototype._onSocketMessage = function(data) {
-//   var messages = JSON.parse(data);
-
-//   this._dbPromise.then(function(db) {
-//     if (!db) return;
-
-//     var tx = db.transaction('wittrs', 'readwrite');
-//     var store = tx.objectStore('wittrs');
-//     messages.forEach(function(message) {
-//       store.put(message);
-//     });
-
-//     // limit store to 30 items
-//     store.index('by-date').openCursor(null, "prev").then(function(cursor) {
-//       return cursor.advance(30);
-//     }).then(function deleteRest(cursor) {
-//       if (!cursor) return;
-//       cursor.delete();
-//       return cursor.continue().then(deleteRest);
-//     });
-//   });
-
-//   this._postsView.addPosts(messages);
-// };

@@ -20,12 +20,11 @@ Converter.prototype.addCurrencies = function(currencies) {
     // console.log('About adding currencies to view', currencies);
 
     const htmlString = converterTemplate({currencies});
-    console.log(htmlString);
+    // console.log(htmlString);
 
     // add the converter to the dom
     var node = parseHTML(htmlString);
     this._converterPanelHolder.insertBefore(node, this._converterPanelHolder.firstChild);
-    console.log('Add converter panel');
 
     // remove the loader
     const loader = this._container.querySelector('.loader');
@@ -33,12 +32,3 @@ Converter.prototype.addCurrencies = function(currencies) {
         loader.parentNode.removeChild(loader);
     }
 }
-
-/**
- * Display the converter panel
- * 
- * @param {el} container The page container 
- */
-Converter.prototype.displayConverter = function(container) {
-
-};

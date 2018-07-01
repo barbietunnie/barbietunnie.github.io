@@ -3,13 +3,13 @@
     <form class="card p-2">
         <div class="input-group">
             <div class="input-group-append">
-                <select class="custom-select d-block w-100" required>
+                <select id="fromCurrency" class="custom-select d-block w-100" required>
                 {{#each currencies}}
                     <option value="{{id}}">{{id}}</option>
                 {{/each}}
                 </select>
             </div>
-            <input type="number" class="form-control" placeholder="0.00" v-model="fromCurrency" v-on:keyUp="convertAmount">
+            <input type="number" class="form-control" placeholder="0.00" id="amt1">
         </div>
     </form>
 </div><!-- The left dropdown box should be injected inside the block -->
@@ -18,13 +18,13 @@
     <form class="card p-2">
         <div class="input-group">
             <div class="input-group-append">
-                <select class="custom-select d-block w-100" required>
+                <select id="toCurrency" class="custom-select d-block w-100" required>
                 {{#each currencies}}
                     <option value="{{id}}">{{id}}</option>
                 {{/each}}
                 </select>
             </div>
-            <input type="number" class="form-control" placeholder="0.00" v-model="toCurrency" v-on:keyUp="convertAmount">
+            <input type="number" class="form-control" placeholder="0.00" id="amt2">
         </div>
     </form>
 </div><!-- The right dropdown box should be injected inside the block -->

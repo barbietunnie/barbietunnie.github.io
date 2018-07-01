@@ -12,7 +12,6 @@ self.addEventListener('install', function(event) {
       return cache.addAll([
         '/skeleton',
         'scripts/main.js',
-        'https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js',
         'https://code.jquery.com/jquery-3.3.1.slim.min.js',
         'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js',
         'https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js',
