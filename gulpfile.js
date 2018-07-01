@@ -11,6 +11,7 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var mergeStream = require('merge-stream');
 var through = require('through2');
+var deploy = require('gulp-gh-pages');
 
 var args = process.argv.slice(3);
 
@@ -76,16 +77,7 @@ function bundle(b, outputPath) {
 var jsBundles = {
     'scripts/polyfills/promise.js': createBundle('./public/scripts/polyfills/promise.js'),
     'scripts/polyfills/url.js': createBundle('./public/scripts/polyfills/url.js'),
-    // 'scripts/settings.js': createBundle('./public/scripts/settings/index.js'),
-    // 'scripts/vendor/jquery-slim.min.js': createBundle('./public/scripts/vendor/jquery-slim.min.js'),
-    // 'scripts/vendor/popper.min.js': createBundle('./public/scripts/vendor/popper.min.js'),
-    // 'scripts/vendor/holder.min.js': createBundle('./public/scripts/vendor/holder.min.js'),
-
-
-
     'scripts/main.js': createBundle('./public/scripts/main/index.js'),
-    // 'scripts/remote-executor.js': createBundle('./public/scripts/remote-executor/index.js'),
-    // 'scripts/idb-test.js': createBundle('./public/scripts/idb-test/index.js'),
     'sw.js': createBundle(['./public/scripts/sw/index.js', './public/scripts/sw/preroll/index.js'])
 };
 
@@ -152,3 +144,11 @@ gulp.task('serve', function(callback) {
     // runSequence('clean', ['css', 'js:browser', 'templates:server', 'js:server', 'copy'], ['server', 'watch'], callback);
     runSequence('clean', ['css', 'js:browser', 'templates:server', 'js:server', 'copy'], ['server', 'watch'], callback);
 });
+
+/**
+ * Push build to gh-pages
+ */
+gulp.task('deploy', function () {
+    return gulp.src("./build/**/**/*")
+      .pipe(deploy())
+  });

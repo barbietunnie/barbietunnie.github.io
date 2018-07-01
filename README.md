@@ -3,7 +3,12 @@ Front-end application that takes advantage of the functionalities of [Free Curre
 
 The application works both online and offline.
 
+
+### How to run
+1. Execute `npm run serve` at the terminal.
+2. Open [Currency Converter](http://localhost:8888)
+
+
 ### Todo
-- Remove local APIs being used in `constants.js`
-- Host on Github
 - Convert to ES6
+- Host on Github
