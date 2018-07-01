@@ -149,6 +149,6 @@ gulp.task('serve', function(callback) {
  * Push build to gh-pages
  */
 gulp.task('deploy', function () {
-    return gulp.src("./build/**/**/*")
+    return gulp.src("./build/**/*")
       .pipe(deploy())
   });
