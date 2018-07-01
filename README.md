@@ -21,5 +21,6 @@ The application works both online and offline.
 
 
 ### Todo
+- Fix the issue with dropdowns not triggering an update
 - Convert to ES6
 - Host on Github Pages
