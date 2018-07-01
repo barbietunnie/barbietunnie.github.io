@@ -161,17 +161,16 @@ IndexController.prototype.registerEventOnInputFields = function() {
           // this.convert().then(function(val) {
           //   console.log(`Rate: ${val}`);
           // });
-          this.convert().then(function(val) {
-            console.log(`Rate: ${val}`);
-          });
+          this.convert(fromCurr, fromField, toCurr, toField);
   }, KEYUP_DELAY));
 
   toField.addEventListener("keyup", debounce((event) => {
       // console.log('Right: ', toField.value);
       if(fromField.value && toField.value)
-          this.convert().then(function(val) {
-            console.log(`Rate: ${val}`);
-          });
+          // this.convert().then(function(val) {
+          //   console.log(`Rate: ${val}`);
+          // });
+          this.convert(toCurr, toField, fromCurr, fromField);
   }, KEYUP_DELAY));
 
   // fromCurr.addEventListener("select", this.convert());
@@ -179,13 +178,13 @@ IndexController.prototype.registerEventOnInputFields = function() {
   // toCurr.addEventListener("select", this.convert());
 };
 
-IndexController.prototype.convert = function() {
+IndexController.prototype.convert = function(srcCurrSelect, srcField, dstCurrSelect, dstField) {
   var indexController = this;
 
-  const fromField = this._container.querySelector('#amt1');
-  const toField = this._container.querySelector('#amt2');
-  const fromCurr = this._container.querySelector('#fromCurrency');
-  const toCurr = this._container.querySelector('#toCurrency');
+  const fromField = srcField;
+  const toField = dstField;
+  const fromCurr = srcCurrSelect;
+  const toCurr = dstCurrSelect;
 
   const expectedCurrency = `${fromCurr.value}_${toCurr.value}`;
   // console.log(`Expected currency: ${expectedCurrency}`);
@@ -197,24 +196,25 @@ IndexController.prototype.convert = function() {
   }).then(function(storedRecord){
     if(storedRecord) {
         console.log(`${expectedCurrency} is available at rate ${storedRecord.rate} from the database`);
-        return storedRecord.rate;
+
+        toField.value = Number(storedRecord.rate * fromField.value).toFixed(2);
     }
     
     // Rate not found in the database, fetch from the API
     console.log('Fetching rates from the network');
 
-    return fetch(`${CONVERSION_URL}${expectedCurrency}`)
+    fetch(`${CONVERSION_URL}${expectedCurrency}`)
           .then(function(response) {
               return response.json();
           })
           .then(function(jsonData) {
-              console.log(jsonData);
+              // console.log(jsonData);
               
               if(!jsonData)
                   return;
               
               // Add the rate fetched into the database
-              return indexController._dbPromise.then(function(db) {
+              indexController._dbPromise.then(function(db) {
                   if (!db) return;
 
                   var tx = db.transaction(RATES_STORE, 'readwrite');
@@ -227,7 +227,7 @@ IndexController.prototype.convert = function() {
                   store.get(expectedCurrency).then(function(dbCurr) {
                     console.log(`${expectedCurrency} = ${dbCurr.rate} was saved in the database`);
                     
-                    return dbCurr.rate;
+                    toField.value = Number(dbCurr.rate * fromField.value).toFixed(2);
                   });
             });
           });
