@@ -5,10 +5,21 @@ The application works both online and offline.
 
 
 ### How to run
-1. Execute `npm run serve` at the terminal.
-2. Open [Currency Converter](http://localhost:8888)
+1. Clone the repo
+```
+    git clone git@github.com:barbietunnie/barbietunnie.github.io.git
+```
+2. Install dependencies
+```
+    npm install
+```
+3. Start the server
+```
+    npm run serve
+```
+4. Open the [Currency Converter](http://localhost:8888) application
 
 
 ### Todo
 - Convert to ES6
-- Host on Github
+- Host on Github Pages
